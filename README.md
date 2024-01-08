@@ -1,4 +1,6 @@
-# Backend-lab2
+# Backend-lab3
+
+### Variant: 11%3 = 2 : Custom expense categories
 
 ### To start the project:
 
