@@ -9,11 +9,19 @@ records = {}
 @app.post('/record')
 def create_record():
     data = request.get_json()
+
+    if not data or 'user_id' not in data or 'category_id' not in data or 'amount_of_money' not in data:
+        return jsonify({'error': 'Invalid data format. Required fields: user_id, category_id, amount_of_money'}), 400
+
+    try:
+        amount_of_money = float(data['amount_of_money'])
+    except ValueError:
+        return jsonify({'error': 'Invalid amount_of_money. Must be a valid number.'}), 400
+
     record_id = uuid.uuid4().hex
     user_id = data['user_id']
     category_id = data['category_id']
     time = datetime.now()
-    amount_of_money = data['amount_of_money']
     record = {"record_id": record_id, "user_id": user_id, "category_id": category_id, "time": time, "amount_of_money": amount_of_money}
     records[record_id] = record
     return jsonify(record)

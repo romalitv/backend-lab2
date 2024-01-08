@@ -17,10 +17,15 @@ def healthcheck():
 @app.post('/user')
 def create_user():
     data = request.get_json()
+
+    if not data or 'user_name' not in data:
+        return jsonify({'error': 'Invalid data format. Required field: user_name'}), 400
+
     user_name = data['user_name']
     user_id = uuid.uuid4().hex
     user = {"id": user_id, "user_name": user_name}
     users[user_id] = user
+
     return jsonify(user)
 
 

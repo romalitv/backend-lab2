@@ -8,10 +8,15 @@ categories = {}
 @app.post("/category")
 def create_category():
     data = request.get_json()
+
+    if not data or 'category_name' not in data:
+        return jsonify({'error': 'Invalid data format. Required field: category_name'}), 400
+
     category_name = data["category_name"]
     category_id = uuid.uuid4().hex
     category = {"id": category_id, "category_name": category_name}
     categories[category_id] = category
+
     return jsonify(category)
 
 @app.get("/category")
