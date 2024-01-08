@@ -1,10 +1,14 @@
 import uuid
 
 from flask import jsonify, request
+from marshmallow import ValidationError
+
 from lab import app
+from lab.models import UserModel, db
+from lab.entities import PlainUserSchema
 from datetime import datetime
 
-users = {}
+user_schema = PlainUserSchema()
 
 @app.get('/healthcheck')
 def healthcheck():
@@ -16,39 +20,46 @@ def healthcheck():
 
 @app.post('/user')
 def create_user():
-    data = request.get_json()
+    try:
+      data = user_schema.load(request.json)
+    except ValidationError as e:
+        return jsonify(e.messages), 400
 
-    if not data or 'user_name' not in data:
-        return jsonify({'error': 'Invalid data format. Required field: user_name'}), 400
-
-    user_name = data['user_name']
-    user_id = uuid.uuid4().hex
-    user = {"id": user_id, "user_name": user_name}
-    users[user_id] = user
+    data['user_id'] = uuid.uuid4().hex
+    user = UserModel(**data)
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
 
     return jsonify(user)
 
 
 @app.get('/users')
 def get_users():
-    return list(users.values())
+    data = user_schema.dump(UserModel.query.all(), many=True)
+    return jsonify(data)
 
 @app.get('/user/<user_id>')
 def get_user(user_id):
-    if user_id in users:
-        user = users[user_id]
-        return jsonify(user)
-    else:
-        return jsonify({'message': 'User not found'}), 404
+    user = UserModel.query.get(user_id)
+    try:
+        return jsonify(user_schema.dump(user)), 200
+    except Exception as e:
+        db.session.rollback()
 
 
 @app.delete('/user/<user_id>')
 def delete_user(user_id):
-    if user_id in users:
-        deleted_user = users.pop(user_id)
-        return jsonify({'message': 'User deleted successfully', 'user': deleted_user}), 200
-    else:
-        return jsonify({'message': 'User not found'}), 404
+    user = UserModel.query.get(user_id)
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify(user_schema.dump(user)), 200
+    except Exception as e:
+        db.session.rollback()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

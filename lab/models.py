@@ -1,11 +1,10 @@
 import uuid
 
-from flask_sqlalchemy import SQLAlchemy
+from lab.db import db
 from sqlalchemy import func
 
-db = SQLAlchemy()
 
-class User(db.Model):
+class UserModel(db.Model):
     __tablename__ = 'user'
 
     user_id = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -14,7 +13,7 @@ class User(db.Model):
     record = db.relationship("RecordModel", back_populates="user", lazy="dynamic")
 
 
-class Category(db.Model):
+class CategoryModel(db.Model):
     __tablename__ = 'category'
 
     category_id = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

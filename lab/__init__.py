@@ -1,9 +1,16 @@
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 app = Flask(__name__)
-
 app.config.from_pyfile('config.py', silent=True)
 
-from lab.views import user
-from lab.views import category
-from lab.views import record
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+from lab.models import UserModel, RecordModel, CategoryModel
+
+
+import lab.views.user
+import lab.views.record
+import lab.views.category

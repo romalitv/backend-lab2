@@ -1,10 +1,3 @@
-import os
-
 PROPAGATE_EXCEPTIONS = True
-FLASK_DEBUG = True
-SQLALCHEMY_DATABASE_URI = f'postgresql://{os.environ["POSTGRES_USER"]}:{os.environ["POSTGRES_PASSWORD"]}@172.20.0.2/{os.environ["POSTGRES_DB"]}'
+SQLALCHEMY_DATABASE_URI = "sqlite:///data.db?check_same_thread=False"
 SQLALCHEMY_TRACK_MODIFICATIONS = False
-API_TITLE = 'Lab API'
-API_VERSION = 'v1'
-OPENAPI_VERSION = "3.0.1"
-OPENAPI_URL_PREFIX = '/'
