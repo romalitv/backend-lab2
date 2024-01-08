@@ -17,9 +17,9 @@ def healthcheck():
 @app.post('/user')
 def create_user():
     data = request.get_json()
-    user_name = data['name']
+    user_name = data['user_name']
     user_id = uuid.uuid4().hex
-    user = {"id": user_id, "name": user_name}
+    user = {"id": user_id, "user_name": user_name}
     users[user_id] = user
     return jsonify(user)
 
