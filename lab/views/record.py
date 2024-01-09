@@ -1,48 +1,58 @@
 import uuid
 
-from flask import jsonify, request
-from lab import app
+from flask import jsonify, request, abort
+from flask_smorest import Blueprint
+from marshmallow import ValidationError
+from lab import CategoryModel, UserModel, db, RecordModel
 from datetime import datetime
+from lab.entities import RecordSchema
 
+blp = Blueprint('record',__name__, description="Record operations")
+record_schema = RecordSchema()
 records = {}
 
-@app.post('/record')
+@blp.post('/record')
 def create_record():
-    data = request.get_json()
-
-    if not data or 'user_id' not in data or 'category_id' not in data or 'amount_of_money' not in data:
-        return jsonify({'error': 'Invalid data format. Required fields: user_id, category_id, amount_of_money'}), 400
-
+    record = request.args
     try:
-        amount_of_money = float(data['amount_of_money'])
-    except ValueError:
-        return jsonify({'error': 'Invalid amount_of_money. Must be a valid number.'}), 400
+        data = record_schema.load(record)
+    except ValidationError as e:
+        return jsonify(e.messages), 400
 
-    record_id = uuid.uuid4().hex
-    user_id = data['user_id']
-    category_id = data['category_id']
-    time = datetime.now()
-    record = {"record_id": record_id, "user_id": user_id, "category_id": category_id, "time": time, "amount_of_money": amount_of_money}
-    records[record_id] = record
-    return jsonify(record)
+    data['record_id'] = uuid.uuid4().hex
+    data['time'] = datetime.now()
+    user = UserModel.query.get(record['user_id'])
+    category = CategoryModel.query.get(record['category_id'])
+    if(category is not None and user is not None):
+        data["user_id"] = user.user_id
+        data["category_id"] = category.category_id
+        record = RecordModel(**data)
+    try:
+        db.session.add(record)
+        db.session.commit()
+    except Exception as e:
+        abort(400, message="failed creating record")
 
-@app.get('/record/<record_id>')
+
+
+@blp.get('/record/<record_id>')
 def get_record(record_id):
-    if record_id in records:
-        record = records[record_id]
-        return jsonify(record)
-    else:
-        return jsonify({'message': 'Record not found'}), 404
+    record = RecordModel.query.get(record_id)
+    try:
+        return jsonify(record_schema.dump(record)), 200
+    except Exception as e:
+        abort(400, e.message)
 
-@app.delete('/record/<record_id>')
+@blp.delete('/record/<record_id>')
 def delete_record(record_id):
-    if record_id in records:
-        delete_record = records.pop(record_id)
-        return jsonify({'message': 'Record deleted successfully', 'user': delete_record}), 200
-    else:
-        return jsonify({'message': 'Record not found'}), 404
+    record = RecordModel.query.get(record_id)
+    try:
+        db.session.delete(record)
+        db.session.commit()
+    except Exception as e:
+        abort(500, e.message)
 
-@app.get('/record')
+@blp.get('/record')
 def get_records():
     data = request.get_json()
     user_id = data['user_id']
@@ -58,6 +68,3 @@ def get_records():
     ]
 
     return jsonify({'records': filtered_records})
-
-if __name__ == '__main__':
-    app.run(debug=True)

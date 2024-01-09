@@ -1,27 +1,21 @@
 import uuid
 
-from flask import jsonify, request
+from flask import jsonify, request, abort
+from flask_smorest import Blueprint
 from marshmallow import ValidationError
-
-from lab import app
 from lab.models import UserModel, db
-from lab.entities import PlainUserSchema
-from datetime import datetime
-
-user_schema = PlainUserSchema()
-
-@app.get('/healthcheck')
-def healthcheck():
-    current_date = datetime.now()
-    current_status = "ok"
-    health_status = {'status': current_status, 'date': current_date}
-    return jsonify(health_status)
+from lab.entities import UserSchema
 
 
-@app.post('/user')
+blp = Blueprint('user', __name__, description="Operations related to users")
+user_schema = UserSchema()
+users = {}
+
+@blp.post('/user')
 def create_user():
+    user = request.args
     try:
-      data = user_schema.load(request.json)
+        data = UserSchema().load(user)
     except ValidationError as e:
         return jsonify(e.messages), 400
 
@@ -30,36 +24,33 @@ def create_user():
     try:
         db.session.add(user)
         db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-
-    return jsonify(user)
+    except Exception :
+        abort(400, message="failed creating user")
 
 
-@app.get('/users')
+
+
+@blp.get('/users')
 def get_users():
     data = user_schema.dump(UserModel.query.all(), many=True)
     return jsonify(data)
 
-@app.get('/user/<user_id>')
+
+@blp.get('/user/<user_id>')
 def get_user(user_id):
     user = UserModel.query.get(user_id)
     try:
         return jsonify(user_schema.dump(user)), 200
     except Exception as e:
-        db.session.rollback()
+       abort(400, "cannot find users")
 
 
-@app.delete('/user/<user_id>')
+@blp.delete('/user/<user_id>')
 def delete_user(user_id):
     user = UserModel.query.get(user_id)
     try:
         db.session.delete(user)
         db.session.commit()
         return jsonify(user_schema.dump(user)), 200
-    except Exception as e:
-        db.session.rollback()
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    except Exception:
+        abort(400, message="failed deleting user")

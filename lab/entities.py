@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validates, ValidationError
 
 
-class PlainUserSchema(Schema):
+class UserSchema(Schema):
     user_id = fields.UUID(dump_only=True)
     user_name = fields.Str(required=True)
 
