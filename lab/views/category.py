@@ -3,35 +3,63 @@ import uuid
 from flask import jsonify, request, abort
 from flask_smorest import Blueprint
 from marshmallow import ValidationError
-from lab.models import db, CategoryModel
+from lab.models import db, CategoryModel, UserModel
 from lab.entities import CategorySchema
 
-blp = Blueprint('category',__name__,description='Operations related to category')
+blp_category = Blueprint('category', __name__, description='Operations related to category')
 category_schema = CategorySchema()
-category = {}
 
 
-@blp.post("/category")
+@blp_category.post("/category")
 def create_category():
-    category = request.args
+    category = request.json
+
+    # Check if 'user_id' is present in the request JSON
+    user_id = category.get('user_id', None)
+
+    if user_id is not None:
+        user = UserModel.query.get(user_id)
+        if user is None:
+            return jsonify({'error': 'Invalid user_id'}), 400
+    else:
+        user_id = None
+
     try:
-        data = CategorySchema().load(category)
+        data = category_schema.load(category)
     except ValidationError as e:
-        return jsonify(e.messages), 400
+        return jsonify(e.messages), 401
+
+    is_common = data.get("is_common", False)
+
+    data["is_common"] = is_common
     data["category_id"] = uuid.uuid4().hex
+
+    # Set 'user_id' only if it was provided in the request
+    data["user_id"] = user_id
+
     category = CategoryModel(**data)
+
     try:
         db.session.add(category)
         db.session.commit()
     except Exception:
-        abort(400, message="failed creating category")
+        abort(401, message="failed creating category")
 
-@blp.get("/category")
+    return category_schema.dump(category)
+
+@blp_category.get("/category")
 def get_categories():
-    data = category_schema.dump(CategoryModel.query.all(), many=True)
+    user_id = request.args.get("user_id")
+
+    if user_id:
+        categories = CategoryModel.query.filter(CategoryModel.is_common | (CategoryModel.user_id == user_id)).all()
+    else:
+        categories = CategoryModel.query.filter_by(is_common=True).all()
+
+    data = category_schema.dump(categories, many=True)
     return jsonify(data)
 
-@blp.delete("/category/<category_id>")
+@blp_category.delete("/category/<category_id>")
 def delete_category(category_id):
     category = CategoryModel.query.get(category_id)
     try:

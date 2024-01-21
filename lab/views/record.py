@@ -7,13 +7,12 @@ from lab import CategoryModel, UserModel, db, RecordModel
 from datetime import datetime
 from lab.entities import RecordSchema
 
-blp = Blueprint('record',__name__, description="Record operations")
+blp_record = Blueprint('record', __name__, description="Record operations")
 record_schema = RecordSchema()
-records = {}
 
-@blp.post('/record')
+@blp_record.post('/record')
 def create_record():
-    record = request.args
+    record = request.json
     try:
         data = record_schema.load(record)
     except ValidationError as e:
@@ -23,19 +22,19 @@ def create_record():
     data['time'] = datetime.now()
     user = UserModel.query.get(record['user_id'])
     category = CategoryModel.query.get(record['category_id'])
-    if(category is not None and user is not None):
+    if category is not None and user is not None:
         data["user_id"] = user.user_id
         data["category_id"] = category.category_id
-        record = RecordModel(**data)
+    record = RecordModel(**data)
     try:
         db.session.add(record)
         db.session.commit()
     except Exception as e:
-        abort(400, message="failed creating record")
+        abort(400, str(e))
 
+    return record_schema.dump(record)
 
-
-@blp.get('/record/<record_id>')
+@blp_record.get('/record/<record_id>')
 def get_record(record_id):
     record = RecordModel.query.get(record_id)
     try:
@@ -43,28 +42,36 @@ def get_record(record_id):
     except Exception as e:
         abort(400, e.message)
 
-@blp.delete('/record/<record_id>')
+@blp_record.delete('/record/<record_id>')
 def delete_record(record_id):
     record = RecordModel.query.get(record_id)
     try:
         db.session.delete(record)
         db.session.commit()
+        return jsonify(record_schema.dump(record))
     except Exception as e:
-        abort(500, e.message)
+        abort(400, e.message)
 
-@blp.get('/record')
+
+
+@blp_record.get('/record')
 def get_records():
     data = request.get_json()
-    user_id = data['user_id']
-    category_id = data['category_id']
+    user_id = data.get('user_id', None)
+    category_id = data.get('category_id', None)
 
-    if user_id == "" and category_id == "":
+    if user_id is None and category_id is None:
         return jsonify({'error': 'At least one parameter (user_id or category_id) is required'}), 400
 
-    filtered_records = [
-        record for record in records.values()
-        if (user_id == "" or str(record.get('user_id')) == user_id) and (
-                    category_id == "" or str(record.get('category_id')) == category_id)
-    ]
+    query = RecordModel.query
+    if user_id is not None:
+        query = query.filter_by(user_id=user_id)
+    if category_id is not None:
+        query = query.filter_by(category_id=category_id)
 
-    return jsonify({'records': filtered_records})
+    try:
+        records = query.all()
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+
+    return jsonify(record_schema.dump(records, many=True)), 200

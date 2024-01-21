@@ -14,8 +14,8 @@ services:
    image: postgres:15.4-alpine3.18
    restart: always
    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: backend-lab3
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: bckndlab_3_user
+      POSTGRES_DB: bckndlab_3
+      POSTGRES_PASSWORD: Qmsed6KCYRLtsAl9VVOoVWyYDoB3f3hr
    ports:
      - '5432:5432'

@@ -4,8 +4,9 @@ from flask_migrate import Migrate
 from .db import db
 from lab.models import UserModel, RecordModel, CategoryModel
 
-import lab.views.record
-import lab.views.category
+from .views.user import blp_user
+from .views.category import blp_category
+from .views.record import blp_record
 
 
 def create_app():
@@ -17,8 +18,8 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    app.register_blueprint(lab.views.category)
-    app.register_blueprint(lab.views.record)
-    app.register_blueprint(lab.views.user)
+    app.register_blueprint(blp_category)
+    app.register_blueprint(blp_record)
+    app.register_blueprint(blp_user)
 
     return app

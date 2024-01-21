@@ -7,13 +7,12 @@ from lab.models import UserModel, db
 from lab.entities import UserSchema
 
 
-blp = Blueprint('user', __name__, description="Operations related to users")
+blp_user = Blueprint('user', __name__, description="Operations related to users")
 user_schema = UserSchema()
-users = {}
 
-@blp.post('/user')
+@blp_user.post('/user')
 def create_user():
-    user = request.args
+    user = request.json
     try:
         data = UserSchema().load(user)
     except ValidationError as e:
@@ -27,25 +26,27 @@ def create_user():
     except Exception :
         abort(400, message="failed creating user")
 
+    return user_schema.dump(user)
 
 
 
-@blp.get('/users')
+
+@blp_user.get('/users')
 def get_users():
     data = user_schema.dump(UserModel.query.all(), many=True)
     return jsonify(data)
 
 
-@blp.get('/user/<user_id>')
+@blp_user.get('/user/<user_id>')
 def get_user(user_id):
     user = UserModel.query.get(user_id)
     try:
         return jsonify(user_schema.dump(user)), 200
-    except Exception as e:
+    except Exception :
        abort(400, "cannot find users")
 
 
-@blp.delete('/user/<user_id>')
+@blp_user.delete('/user/<user_id>')
 def delete_user(user_id):
     user = UserModel.query.get(user_id)
     try:
