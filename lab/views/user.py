@@ -6,7 +6,6 @@ from marshmallow import ValidationError
 from lab.models import UserModel, db
 from lab.entities import UserSchema
 
-
 blp_user = Blueprint('user', __name__, description="Operations related to users")
 user_schema = UserSchema()
 

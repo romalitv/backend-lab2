@@ -14,7 +14,6 @@ category_schema = CategorySchema()
 def create_category():
     category = request.json
 
-    # Check if 'user_id' is present in the request JSON
     user_id = category.get('user_id', None)
 
     if user_id is not None:
@@ -33,10 +32,7 @@ def create_category():
 
     data["is_common"] = is_common
     data["category_id"] = uuid.uuid4().hex
-
-    # Set 'user_id' only if it was provided in the request
     data["user_id"] = user_id
-
     category = CategoryModel(**data)
 
     try:
