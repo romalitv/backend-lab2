@@ -23,6 +23,8 @@ def create_record():
     user = UserModel.query.get(record['user_id'])
     category = CategoryModel.query.get(record['category_id'])
     if category is not None and user is not None:
+        if user.user_id != category.user_id and category.user_id is not None:
+            abort(400, 'User and category do not match')
         data["user_id"] = user.user_id
         data["category_id"] = category.category_id
     record = RecordModel(**data)
